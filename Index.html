@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Game Debugger</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --panel: #252526;
+            --accent: #8e44ad;
+            --text: #d4d4d4;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column;
+            height: 100vh; background: var(--bg); color: var(--text);
+            overflow: hidden;
+        }
+
+        /* Layout */
+        header {
+            height: 50px; background: #333;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; border-bottom: 1px solid #444;
+        }
+
+        .main-content {
+            display: flex; flex-direction: column;
+            height: calc(100vh - 50px);
+        }
+
+        #editor {
+            height: 25%; width: 100%;
+            background: #121212; color: #9cdcfe;
+            border: none; padding: 15px;
+            font-family: 'Consolas', monospace; font-size: 14px;
+            resize: none; outline: none; border-bottom: 2px solid var(--accent);
+        }
+
+        #preview {
+            height: 75%; width: 100%;
+            background: white; border: none;
+        }
+
+        /* Buttons */
+        .btn {
+            border: none; padding: 8px 15px; border-radius: 4px;
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        #run-btn { background: #4CAF50; color: white; }
+        #ai-btn { background: var(--accent); color: white; margin-right: 10px; }
+
+        /* The Big Diagnostic Box */
+        #ai-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+
+        .modal {
+            background: var(--panel); width: 80%; max-width: 600px;
+            padding: 30px; border-radius: 12px; border: 2px solid var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .error-list {
+            background: #1a1a1a; padding: 15px;
+            border-radius: 6px; margin: 15px 0;
+            max-height: 200px; overflow-y: auto;
+            color: #ff6b6b; font-family: monospace;
+        }
+
+        .copy-hint { color: #888; font-size: 12px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <strong>GameDev Engine</strong>
+    <div>
+        <button id="ai-btn" class="btn">✨ INSPECT CODE</button>
+        <button id="run-btn" class="btn">RUN GAME</button>
+    </div>
+</header>
+
+<div class="main-content">
+    <textarea id="editor" placeholder="Paste your HTML/CSS/JS here..." spellcheck="false"></textarea>
+    <iframe id="preview"></iframe>
+</div>
+
+<div id="ai-overlay">
+    <div class="modal">
+        <h2 style="margin-top:0; color:var(--accent);">Deep Scan Results</h2>
+        <p>I've analyzed your code structure. Here is what needs attention before sending to Gemini:</p>
+        
+        <div class="error-list" id="bug-report">
+            </div>
+
+        <button id="copy-btn" class="btn" style="background:#34495e; color:white; width:100%;">
+            COPY DEBUG TOKEN FOR GEMINI
+        </button>
+        <p class="copy-hint">Click the button above, then paste it into our chat. I'll use it to fix the game instantly.</p>
+        <button onclick="closeAI()" class="btn" style="margin-top:10px; background:transparent; color:#888;">Close</button>
+    </div>
+</div>
+
+<script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+    const overlay = document.getElementById('ai-overlay');
+    const reportBox = document.getElementById('bug-report');
+
+    // Run the code
+    document.getElementById('run-btn').onclick = () => {
+        const doc = preview.contentDocument || preview.contentWindow.document;
+        doc.open();
+        doc.write(editor.value);
+        doc.close();
+    };
+
+    // Analyze and open big box
+    document.getElementById('ai-btn').onclick = () => {
+        const code = editor.value;
+        let issues = [];
+
+        // Realistic code checks
+        if (!code.includes('<canvas') && code.toLowerCase().includes('game')) issues.push("⚠️ Missing <canvas> element (standard for games).");
+        if (code.includes('addEventListener') && !code.includes('keydown') && !code.includes('click')) issues.push("⚠️ Event listeners found but no controls (keys/clicks) defined.");
+        if (code.includes('style') && !code.includes('margin: 0')) issues.push("⚠️ CSS warning: Game may have weird offsets without 'margin: 0' on body.");
+        if (code.length < 50) issues.push("⚠️ Code snippet is very short; likely missing core logic.");
+        
+        // Show the box
+        reportBox.innerHTML = issues.length > 0 
+            ? issues.join('<br>') 
+            : "✔️ Logic looks clean, but logic errors (like gravity or scoring) might still exist in the JS.";
+        
+        overlay.style.display = 'flex';
+    };
+
+    function closeAI() { overlay.style.display = 'none'; }
+
+    // Copying the specialized report
+    document.getElementById('copy-btn').onclick = () => {
+        const fullReport = `DIAGNOSTIC REPORT\n----------------\nERRORS FOUND:\n${reportBox.innerText}\n\nSOURCE CODE:\n${editor.value}`;
+        navigator.clipboard.writeText(fullReport);
+        alert("Debug Token Copied! Send it to Gemini now.");
+        closeAI();
+    };
+</script>
+
+</body>
+</html>
